@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
+<html lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8" />
+    <title>pressure sensor</title>
+    <style type="text/css">
+    html {
+        background-color: black;
+    }
+
+    h1 {
+        color: green;
+    }
+    #blink-label {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        font-size: 100px;
+        color: gray;
+    }
+    #blink-label.blinking {
+        color: #33FF00;
+    }
+    #a0 {
+        color: yellow;
+        line-height: 250px;
+    }
+    #settings {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        color: white;
+    }
+    </style>
+
+    <script src="js/jquery-1.7.2.min.js"></script>
+    <script type="text/javascript">
+        var DEV_PORT = "/dev/cu.usbmodemfd121";
+        var arduino
+        var digitalPin = 13;
+        var analogPin0 = 0;
+
+        var cnt = 0000;
+        var basis_fontsize = 50;
+        var max_pressure = 1023;
+        
+        var toHex6 = function(val) {
+            var d2h = new Array('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f');
+            var str = "";
+            for(i=20; i>=0; i-=4){
+                str = str + d2h[((val >> i) & 0xf)];
+            }
+            return str;
+        }
+
+        var blink = function(value) {
+            var bltmp = document.getElementById("blink-label");
+            bltmp.innerHTML = "Time : " + cnt;
+            if(value & 1) {
+                $("#blink-label").addClass("blinking");
+            } else {
+                $("#blink-label").removeClass("blinking");
+            }
+
+            var a0tmp = document.getElementById("a0");
+            var val0 = 0;
+            val0 = arduino.analogRead(analogPin0);
+            a0tmp.innerHTML = "pressure = " + (max_pressure - val0);
+            cnt++;
+            if(cnt > 255) cnt=0;
+            a0tmp.style.fontSize = max_pressure - val0 + basis_fontsize +"px";
+            setTimeout(blink, 100, cnt);
+        }
+
+        var setup = function(){
+            try{
+                with(document.arduino){
+                    arduino = document.arduino;
+                    arduino.open(DEV_PORT);
+                    arduino.pinMode(digitalPin, true);
+                }
+            }catch(e){
+                alert('Connection failed!');
+            }
+        }
+
+        var changeDevicePort = function(){
+            DEV_PORT = $('#devPort').val();
+            setup();
+        }
+
+        $(document).ready(function() {
+            if(!document.arduino){
+                alert("arduino.js for webpages add-on is not installed.");
+            }else{
+                setup();
+            }
+
+            blink(0);
+        });
+    </script>
+</head>
+<body>
+    <h1>arduino x pressure sensor</h1>
+    <div id="blink-label">BLINK!</div>
+    <div id="a0" align="center">a0out</div>
+    <form id="settings" action="javascript:void(0)">
+        Device Port:
+        <input type="text" id="devPort">
+        <input type="button" value="Change" onclick="changeDevicePort()">
+    </form>
+</body>
+</html>
